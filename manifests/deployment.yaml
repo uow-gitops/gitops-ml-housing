@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: house-price-api
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: house-price-api
+  template:
+    metadata:
+      labels:
+        app: house-price-api
+    spec:
+      containers:
+      - name: house-price-api
+        image: us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0  # Updated image path
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
