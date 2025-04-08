@@ -1,4 +1,5 @@
 # import dependencies
+from __future__ import print_function
 import warnings
 import numpy as np
 import pandas as pd
@@ -15,7 +16,6 @@ from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import LabelEncoder
 import matplotlib as mpl
-from __future__ import print_function
 warnings.filterwarnings("ignore")
 import psycopg2
 from sqlalchemy import create_engine
