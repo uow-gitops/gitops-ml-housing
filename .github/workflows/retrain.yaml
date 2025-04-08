@@ -18,11 +18,13 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install --upgrade pip
-          # Install your repository requirements.
-          # Adjust the path below to match your repository structure.
+          # Force install a NumPy version less than 2.x (e.g., 1.24.3)
+          pip install "numpy<2"
+          # Now install other dependencies.
+          # Adjust the path if your requirements.txt is elsewhere (e.g., in app/).
           pip install -r requirements.txt || pip install -r app/requirements.txt
-          # Explicitly install additional packages that your code uses.
-          pip install numpy pandas scikit-learn seaborn matplotlib scipy joblib psycopg2 sqlalchemy
+          # Explicitly install any additional packages your retraining code requires.
+          pip install pandas scikit-learn seaborn matplotlib scipy joblib psycopg2 sqlalchemy
 
       - name: Remove Old Model File
         run: |
@@ -35,7 +37,7 @@ jobs:
 
       - name: Retrain the Model
         run: |
-          # Run main.py with the 'retrain' argument so it executes the training logic only.
+          # Run main.py with the 'retrain' argument so it executes only the training logic.
           python app/main.py retrain
 
       - name: Move New Model File to model/ Folder
