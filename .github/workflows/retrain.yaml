@@ -1,0 +1,61 @@
+name: Retrain Model
+
+# This workflow can be triggered manually via the GitHub Actions UI.
+on:
+  workflow_dispatch:
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          # Adjust the path to your requirements.txt if needed
+          pip install --upgrade pip
+          pip install -r app/requirements.txt
+          # Ensure extra dependencies are installed (joblib, scikit-learn, pandas, etc.)
+          pip install joblib scikit-learn pandas
+
+      - name: Remove old model file if exists
+        run: |
+          if [ -f app/model/model.pkl ]; then
+            echo "Old model found. Removing it..."
+            rm app/model/model.pkl
+          else
+            echo "No existing model file found."
+          fi
+
+      - name: Retrain model using main.py
+        working-directory: .
+        run: |
+          # Run main.py with the 'retrain' argument so that only retraining runs.
+          python app/main.py retrain
+
+      - name: Verify new model file was created
+        run: |
+          if [ -f app/model/model.pkl ]; then
+            echo "New model file created successfully."
+          else
+            echo "Error: New model file was not created." >&2
+            exit 1
+          fi
+
+      - name: Commit and push updated model file
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure Git if necessary
+          git config --local user.name "github-actions"
+          git config --local user.email "github-actions@github.com"
+          # Add and commit updated model.pkl; exit silently if no changes
+          git add app/model/model.pkl
+          git commit -m "Retrained model: updated model.pkl" || echo "No changes to commit"
+          git push
