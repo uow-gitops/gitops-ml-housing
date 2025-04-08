@@ -1,6 +1,5 @@
 name: Retrain Model
 
-# This workflow can be triggered manually via the GitHub Actions UI.
 on:
   workflow_dispatch:
 
@@ -8,55 +7,58 @@ jobs:
   retrain:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
-          # Adjust the path to your requirements.txt if needed
           pip install --upgrade pip
-          pip install -r app/requirements.txt
-          # Ensure extra dependencies are installed (joblib, scikit-learn, pandas, etc.)
-          pip install joblib scikit-learn pandas
+          # Install your repository requirements.
+          # Adjust the path below to match your repository structure.
+          pip install -r requirements.txt || pip install -r app/requirements.txt
+          # Explicitly install additional packages that your code uses.
+          pip install numpy pandas scikit-learn seaborn matplotlib scipy joblib psycopg2 sqlalchemy
 
-      - name: Remove old model file if exists
+      - name: Remove Old Model File
         run: |
-          if [ -f app/model/model.pkl ]; then
-            echo "Old model found. Removing it..."
-            rm app/model/model.pkl
+          if [ -f model/model.pkl ]; then
+            echo "Removing old model model/model.pkl..."
+            rm model/model.pkl
           else
-            echo "No existing model file found."
+            echo "No old model file found in model/ folder."
           fi
 
-      - name: Retrain model using main.py
-        working-directory: .
+      - name: Retrain the Model
         run: |
-          # Run main.py with the 'retrain' argument so that only retraining runs.
+          # Run main.py with the 'retrain' argument so it executes the training logic only.
           python app/main.py retrain
 
-      - name: Verify new model file was created
+      - name: Move New Model File to model/ Folder
         run: |
-          if [ -f app/model/model.pkl ]; then
-            echo "New model file created successfully."
+          # If your training code writes the file as model.pkl in the repository root,
+          # move it into the model directory.
+          if [ -f model.pkl ]; then
+            mkdir -p model
+            mv model.pkl model/model.pkl
+            echo "New model file moved to model/model.pkl."
+          elif [ -f model/model.pkl ]; then
+            echo "New model file already in model/model.pkl."
           else
-            echo "Error: New model file was not created." >&2
+            echo "New model file not found!"
             exit 1
           fi
 
-      - name: Commit and push updated model file
+      - name: Commit and Push New Model File
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Configure Git if necessary
-          git config --local user.name "github-actions"
-          git config --local user.email "github-actions@github.com"
-          # Add and commit updated model.pkl; exit silently if no changes
-          git add app/model/model.pkl
-          git commit -m "Retrained model: updated model.pkl" || echo "No changes to commit"
-          
-
+          git config --local user.name "GitHub Actions"
+          git config --local user.email "actions@github.com"
+          git add model/model.pkl
+          git commit -m "Retrained model: updated model.pkl" || echo "No changes detected."
+          git push
