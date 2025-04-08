@@ -58,6 +58,5 @@ jobs:
           # Add and commit updated model.pkl; exit silently if no changes
           git add app/model/model.pkl
           git commit -m "Retrained model: updated model.pkl" || echo "No changes to commit"
-          git push
-
           
+
