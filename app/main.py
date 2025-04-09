@@ -24,7 +24,7 @@ import warnings
 
 # import datat set
 #df = pd.read_csv('Melbourne_housing_FULL.csv')
-df = pd.read_csv('app/Resources/Melbourne_housing_FULL.csv')
+df = pd.read_csv('Resources/melbourne_housing.csv')
 df.head()
 
 # Learn more about our data
