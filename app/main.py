@@ -53,7 +53,9 @@ melbourne_df.drop_duplicates(inplace = True)
 
 
 # change format
-melbourne_df['Date'] = pd.to_datetime(melbourne_df['Date'])
+#melbourne_df['Date'] = pd.to_datetime(melbourne_df['Date'])
+melbourne_df['Date'] = pd.to_datetime(melbourne_df['Date'], dayfirst=True)
+
 melbourne_df['year'] = melbourne_df['Date'].dt.year
 melbourne_df.drop(['Date'], axis = 1, inplace = True)
 
