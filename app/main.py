@@ -23,7 +23,8 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 import warnings
 
 # import datat set
-df = pd.read_csv('Melbourne_housing_FULL.csv')
+#df = pd.read_csv('Melbourne_housing_FULL.csv')
+df = pd.read_csv('app/Resources/Melbourne_housing_FULL.csv')
 df.head()
 
 # Learn more about our data
