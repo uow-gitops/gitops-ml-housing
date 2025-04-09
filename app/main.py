@@ -50,17 +50,17 @@ def main_training():
     melbourne_df.drop_duplicates(inplace=True)
     
     # Change format of the 'Date' column
-    # FIX: Use dayfirst=True so that dates like "13/08/2016" are interpreted correctly.
+    # Use dayfirst=True to correctly parse dates like "13/08/2016"
     melbourne_df['Date'] = pd.to_datetime(melbourne_df['Date'], dayfirst=True)
     melbourne_df['year'] = melbourne_df['Date'].dt.year
     melbourne_df.drop(['Date'], axis=1, inplace=True)
     
-    # Generate and save heatmap of correlations
+    # Generate and save heatmap of correlations using only numeric columns
     plt.figure(figsize=(15,8))
-    sns.heatmap(melbourne_df.corr(), annot=True, cmap='coolwarm')
+    sns.heatmap(melbourne_df.select_dtypes(include=[np.number]).corr(), annot=True, cmap='coolwarm')
     plt.savefig('heatmap.png')
     
-    # Based on heatmap, drop additional columns
+    # Based on the heatmap, drop additional columns
     melbourne_df.drop(['Postcode', 'year', 'Land Size', 'Property Count'], axis=1, inplace=True)
     
     # Describe data and plot distributions
@@ -70,21 +70,21 @@ def main_training():
     fig = plt.figure()
     prob = stats.probplot(melbourne_df["Price"], plot=plt)
     
-    # Log transform Price
+    # Log transform Price as its distribution is log-normal
     melbourne_df["LogPrice"] = np.log(melbourne_df["Price"])
     dist_price = sns.distplot(melbourne_df["LogPrice"], fit=norm)
     fig = plt.figure()
     prob_log = stats.probplot(melbourne_df["LogPrice"], plot=plt)
     plt.show()
     
-    # Define function to find outliers via IQR
+    # Function to find outliers
     def finding_outliers(data, variable_name):
         iqr = data[variable_name].quantile(0.75) - data[variable_name].quantile(0.25)
         lower = data[variable_name].quantile(0.25) - 1.5 * iqr
         upper = data[variable_name].quantile(0.75) + 1.5 * iqr
         return data[(data[variable_name] < lower) | (data[variable_name] > upper)]
     
-    # Plot boxplots and adjust outliers for Price, Rooms, and Bathroom
+    # Plot and adjust for outliers in Price
     plt.figure(figsize=(8,8))
     sns.boxplot(y="Price", data=melbourne_df)
     finding_outliers(melbourne_df, "Price").sort_values("Price")
@@ -93,6 +93,7 @@ def main_training():
     plt.figure(figsize=(8,8))
     sns.boxplot(y="Price", data=melbourne_df)
     
+    # Plot and adjust for outliers in Rooms
     plt.figure(figsize=(8,8))
     sns.boxplot(y="Rooms", data=melbourne_df)
     finding_outliers(melbourne_df, "Rooms").sort_values("Rooms")
@@ -101,6 +102,7 @@ def main_training():
     plt.figure(figsize=(8,8))
     sns.boxplot(y="Rooms", data=melbourne_df)
     
+    # Plot and adjust for outliers in Bathroom
     plt.figure(figsize=(8,8))
     sns.boxplot(y="Bathroom", data=melbourne_df)
     finding_outliers(melbourne_df, "Bathroom").sort_values("Bathroom")
@@ -110,7 +112,7 @@ def main_training():
     sns.boxplot(y="Bathroom", data=melbourne_df)
     plt.show()
     
-    # Additional plots (countplots, barplots, etc.)
+    # Additional plots for analysis (countplots, barplots, etc.)
     plt.figure(figsize=(15,8))
     sns.countplot(x="Bathroom", data=melbourne_df)
     plt.figure(figsize=(15,8))
@@ -133,7 +135,7 @@ def main_training():
     melbourne_df.to_csv('melbourne.csv', index=False)
     melbourne_df.columns = [c.lower() for c in melbourne_df.columns]
     
-    # Connect to Postgres and import data into SQL (update connection details as needed)
+    # Connect to Postgres (update connection details as required) and load table
     engine = create_engine(f'postgresql://postgres:Blome00228@localhost:5433/Housing')
     conn = engine.connect()
     melbourne_df.to_sql("melbourne", conn, if_exists='replace', index=False)
@@ -141,7 +143,7 @@ def main_training():
     conn.close()
     print(housing_df)
     
-    ### Encoding
+    ### Encoding categorical features
     encode = LabelEncoder().fit(housing_df['type'])
     carpet = {x: i for i, x in enumerate(encode.classes_)}
     print(carpet)
@@ -160,7 +162,7 @@ def main_training():
     # Split data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
-    # Scale data
+    # Scale features
     scaler = StandardScaler().fit(X_train)
     X_train_scaled = scaler.transform(X_train)
     X_test_scaled = scaler.transform(X_test)
@@ -231,7 +233,7 @@ def main_training():
     print(f"Ridge - Training Score: {training_score}")
     print(f"Ridge - Testing Score: {testing_score}")
     
-    # Make predictions and display a sample comparison
+    # Make predictions and display sample comparisons
     y_pred = modelR.predict(X_test)
     print(pd.DataFrame({"Prediction": y_pred, "Actual": y_test}))
     
@@ -241,13 +243,13 @@ def main_training():
     y_pred = model_tree.predict(X_test)
     print(pd.DataFrame({"Prediction": y_pred, "Actual": y_test}))
     
-    # Saving the decision tree model
+    # Saving the Decision Tree model
     pickle.dump(model_tree, open('model.pkl', 'wb'))
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == "retrain":
-        print("Retraining model...")
+        print("Retraining model..")
         main_training()
         print("Retraining complete. Exiting.")
         sys.exit(0)
