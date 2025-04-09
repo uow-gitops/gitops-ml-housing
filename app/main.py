@@ -49,14 +49,14 @@ def main_training():
     # Drop duplicate rows if any
     melbourne_df.drop_duplicates(inplace=True)
     
-    # Change format of the 'Date' column: use dayfirst=True for dates like "13/08/2016"
+    # Change format of the 'Date' column using dayfirst=True for dates like "13/08/2016"
     melbourne_df['Date'] = pd.to_datetime(melbourne_df['Date'], dayfirst=True)
     melbourne_df['year'] = melbourne_df['Date'].dt.year
     melbourne_df.drop(['Date'], axis=1, inplace=True)
     
     # Generate and save heatmap of correlations
     plt.figure(figsize=(15,8))
-    # FIX: Only compute correlations for numeric columns to avoid conversion errors.
+    # Compute correlations only on numeric columns to avoid conversion errors.
     numeric_corr = melbourne_df.select_dtypes(include=[np.number]).corr()
     sns.heatmap(numeric_corr, annot=True, cmap='coolwarm')
     plt.savefig('heatmap.png')
@@ -136,29 +136,35 @@ def main_training():
     melbourne_df.to_csv('melbourne.csv', index=False)
     melbourne_df.columns = [c.lower() for c in melbourne_df.columns]
     
-    # Connect to Postgres (update connection details as required)
-    engine = create_engine(f'postgresql://postgres:Blome00228@localhost:5433/Housing')
-    conn = engine.connect()
-    melbourne_df.to_sql("melbourne", conn, if_exists='replace', index=False)
-    housing_df = pd.read_sql('select * from "melbourne"', conn)
-    conn.close()
-    print(housing_df)
+    # Connect to Postgres and import data into SQL
+    try:
+        engine = create_engine('postgresql://postgres:Blome00228@localhost:5433/Housing')
+        conn = engine.connect()
+        melbourne_df.to_sql("melbourne", conn, if_exists='replace', index=False)
+        housing_df = pd.read_sql('select * from "melbourne"', conn)
+        conn.close()
+        print("Database import successful. Retrieved table:")
+        print(housing_df)
+    except Exception as e:
+        print("Database connection failed, skipping DB import. Error:", e)
     
-    ### Encoding
-    encode = LabelEncoder().fit(housing_df['type'])
+    ### Encoding categorical features
+    encode = LabelEncoder().fit(housing_df['type']) if 'type' in housing_df.columns else LabelEncoder().fit(melbourne_df['type'])
     carpet = {x: i for i, x in enumerate(encode.classes_)}
-    print(carpet)
+    print("Type encoding:", carpet)
     
-    encoder = LabelEncoder().fit(housing_df['region'])
+    encoder = LabelEncoder().fit(housing_df['region']) if 'region' in housing_df.columns else LabelEncoder().fit(melbourne_df['region'])
     carp = {x: i for i, x in enumerate(encoder.classes_)}
-    print(carp)
+    print("Region encoding:", carp)
     
-    housing_df['type'] = LabelEncoder().fit_transform(housing_df['type'])
-    housing_df['region'] = LabelEncoder().fit_transform(housing_df['region'])
+    # If a database table wasn't imported, use melbourne_df for encoding
+    df_to_encode = housing_df if 'type' in housing_df.columns else melbourne_df
+    df_to_encode['type'] = LabelEncoder().fit_transform(df_to_encode['type'])
+    df_to_encode['region'] = LabelEncoder().fit_transform(df_to_encode['region'])
     
     ## Prepare features and target for training
-    X = housing_df.drop(["logprice", "price"], axis=1)
-    y = housing_df['price']
+    X = df_to_encode.drop(["logprice", "price"], axis=1)
+    y = df_to_encode['price']
     
     # Split data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -244,7 +250,7 @@ def main_training():
     y_pred = model_tree.predict(X_test)
     print(pd.DataFrame({"Prediction": y_pred, "Actual": y_test}))
     
-    # Saving the Decision Tree model
+    # Save the Decision Tree model
     pickle.dump(model_tree, open('model.pkl', 'wb'))
 
 if __name__ == "__main__":
