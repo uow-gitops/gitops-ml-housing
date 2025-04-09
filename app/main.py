@@ -49,15 +49,16 @@ def main_training():
     # Drop duplicate rows if any
     melbourne_df.drop_duplicates(inplace=True)
     
-    # Change format of the 'Date' column
-    # Use dayfirst=True to correctly parse dates like "13/08/2016"
+    # Change format of the 'Date' column: use dayfirst=True for dates like "13/08/2016"
     melbourne_df['Date'] = pd.to_datetime(melbourne_df['Date'], dayfirst=True)
     melbourne_df['year'] = melbourne_df['Date'].dt.year
     melbourne_df.drop(['Date'], axis=1, inplace=True)
     
-    # Generate and save heatmap of correlations using only numeric columns
+    # Generate and save heatmap of correlations
     plt.figure(figsize=(15,8))
-    sns.heatmap(melbourne_df.select_dtypes(include=[np.number]).corr(), annot=True, cmap='coolwarm')
+    # FIX: Only compute correlations for numeric columns to avoid conversion errors.
+    numeric_corr = melbourne_df.select_dtypes(include=[np.number]).corr()
+    sns.heatmap(numeric_corr, annot=True, cmap='coolwarm')
     plt.savefig('heatmap.png')
     
     # Based on the heatmap, drop additional columns
@@ -112,7 +113,7 @@ def main_training():
     sns.boxplot(y="Bathroom", data=melbourne_df)
     plt.show()
     
-    # Additional plots for analysis (countplots, barplots, etc.)
+    # Additional plots for analysis...
     plt.figure(figsize=(15,8))
     sns.countplot(x="Bathroom", data=melbourne_df)
     plt.figure(figsize=(15,8))
@@ -135,7 +136,7 @@ def main_training():
     melbourne_df.to_csv('melbourne.csv', index=False)
     melbourne_df.columns = [c.lower() for c in melbourne_df.columns]
     
-    # Connect to Postgres (update connection details as required) and load table
+    # Connect to Postgres (update connection details as required)
     engine = create_engine(f'postgresql://postgres:Blome00228@localhost:5433/Housing')
     conn = engine.connect()
     melbourne_df.to_sql("melbourne", conn, if_exists='replace', index=False)
@@ -143,7 +144,7 @@ def main_training():
     conn.close()
     print(housing_df)
     
-    ### Encoding categorical features
+    ### Encoding
     encode = LabelEncoder().fit(housing_df['type'])
     carpet = {x: i for i, x in enumerate(encode.classes_)}
     print(carpet)
@@ -162,7 +163,7 @@ def main_training():
     # Split data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
-    # Scale features
+    # Scale data
     scaler = StandardScaler().fit(X_train)
     X_train_scaled = scaler.transform(X_train)
     X_test_scaled = scaler.transform(X_test)
@@ -249,7 +250,7 @@ def main_training():
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == "retrain":
-        print("Retraining model..")
+        print("Retraining model...")
         main_training()
         print("Retraining complete. Exiting.")
         sys.exit(0)
