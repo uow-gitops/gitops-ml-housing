@@ -13,8 +13,8 @@ jobs:
     env:
       # Use your project details:
       PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-      # The full image path (static tag "v1.0")
-      IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0
+      # The full image path (static tag "v1.1")
+      IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.1
 
     steps:
       - name: Checkout Repository
