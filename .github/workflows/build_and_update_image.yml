@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build Image and Update Deployment Manifest
 
 on:
   push:
@@ -6,16 +6,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-push:
+  build-and-update:
     runs-on: ubuntu-latest
-
     env:
+      # Use your project details
       PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+      # Base image path (without tag); note: repository is "ml-housing-repo" and image is "ml-housing-app"
       BASE_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app
+      # Build a new image tag dynamically (for example, v1.0.<run_number>)
       IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0.${{ github.run_number }}
 
     steps:
-      - name: Check out the Repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
       - name: Set up Google Cloud SDK
@@ -29,12 +31,37 @@ jobs:
         run: |
           gcloud auth configure-docker us-central1-docker.pkg.dev
 
-      - name: Build Docker Image
+      - name: Build Docker Image with New Tag
         run: |
           echo "Building Docker image: $IMAGE"
+          # Build the image from the "app" folder using the Dockerfile in "app"
           docker build -f app/Dockerfile -t $IMAGE app
 
       - name: Push Docker Image
         run: |
           echo "Pushing Docker image: $IMAGE"
           docker push $IMAGE
+
+      - name: Update Deployment Manifest
+        run: |
+          echo "Updating image in manifests/deployment.yaml to: $IMAGE"
+          # Replace the existing image tag with the new one.
+          # This sed command searches for any occurrence of BASE_IMAGE:<anything> and replaces it with the new IMAGE.
+          sed -i "s|${BASE_IMAGE}:[^ ]*|${IMAGE}|g" manifests/deployment.yaml
+          echo "Updated deployment manifest:"
+          cat manifests/deployment.yaml
+
+      - name: Commit and Push Updated Manifest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain manifests/deployment.yaml)" ]; then
+              echo "Changes detected in manifests/deployment.yaml; committing..."
+              git add manifests/deployment.yaml
+              git commit -m "Update deployment image to ${IMAGE}"
+              git push
+          else
+              echo "No changes detected in manifests/deployment.yaml."
+          fi
