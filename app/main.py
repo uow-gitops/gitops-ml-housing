@@ -147,7 +147,7 @@ def main_training():
     ###################### Data preparation
     
     # Save cleaned data as CSV
-    melbourne_df.to_csv('melbourne.csv', index=False)
+    melbourne_df.to_csv('Resources/melbourne.csv', index=False)
     melbourne_df.columns = [c.lower() for c in melbourne_df.columns]
     
     # Connect to Postgres and import data into SQL
