@@ -9,10 +9,11 @@ jobs:
   build-and-update:
     runs-on: ubuntu-latest
     env:
+      # Your Google Cloud project ID from secrets
       PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-      # Base image path (without tag)
+      # Base image path (without tag). Adjust if needed.
       BASE_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app
-      # Create a new tag using GitHub's run number (e.g., v1.0.X)
+      # Build a new tag using GitHub's run number (example: v1.0.5)
       IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0.${{ github.run_number }}
       CLUSTER: ${{ secrets.GKE_CLUSTER }}
       ZONE: ${{ secrets.GKE_ZONE }}
@@ -34,8 +35,8 @@ jobs:
       - name: Build Docker Image with New Tag
         run: |
           echo "Building Docker image: $IMAGE"
-          # If your Dockerfile is in the app folder, use the -f option; adjust this path as necessary.
-          docker build -f app/Dockerfile -t $IMAGE .
+          # Use the app folder as the build context.
+          docker build -f app/Dockerfile -t $IMAGE app
 
       - name: Push Docker Image
         run: |
@@ -45,8 +46,7 @@ jobs:
       - name: Update Kubernetes Deployment Manifest
         run: |
           echo "Updating image in manifests/deployment.yaml to: $IMAGE"
-          # Replace the old image reference in the deployment manifest.
-          # This command uses sed to search for the BASE_IMAGE followed by any tag and replace it with the new full image.
+          # Replace the old image reference in the deployment manifest with the new IMAGE.
           sed -i "s|${BASE_IMAGE}:[^ ]*|${IMAGE}|g" manifests/deployment.yaml
           echo "Updated deployment manifest:"
           cat manifests/deployment.yaml
@@ -72,7 +72,7 @@ jobs:
 
       - name: (Optional) Deploy to GKE Directly
         run: |
-          # Uncomment the lines below if you want to apply the updated manifests immediately.
+          # Uncomment the lines below if you wish to apply the manifests immediately.
           # kubectl apply -f manifests/deployment.yaml
           # kubectl apply -f manifests/service.yaml
           # kubectl rollout status deployment/house-price-api
