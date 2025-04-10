@@ -1,4 +1,4 @@
-name: Build Image and Update Manifests for ArgoCD
+name: Build Image and Update Deployment Manifest
 
 on:
   push:
@@ -8,20 +8,16 @@ on:
 jobs:
   build-and-update:
     runs-on: ubuntu-latest
+
     env:
-      # Your Google Cloud project ID (should be "recoai-455707")
       PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-      # The working image path using your verified repository name "ml-housing-repo" and image name "ml-housing-app"
-      # To use a static tag "v1.0", you could simply set IMAGE to:
-      # IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0
-      # Here we use a dynamic tag for versioning:
+      # Base image path without tag – repository is "ml-housing-repo" and image is "ml-housing-app"
       BASE_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app
+      # Use a static tag "v1.0"
       IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0
-      # These variables are available if needed later
-      CLUSTER: ${{ secrets.GKE_CLUSTER }}
-      ZONE: ${{ secrets.GKE_ZONE }}
+
     steps:
-      - name: Check out the Repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
       - name: Set up Google Cloud SDK
@@ -36,13 +32,13 @@ jobs:
           gcloud config set project ${PROJECT_ID}
           gcloud auth configure-docker us-central1-docker.pkg.dev
 
-      - name: Build Docker Image with New Tag
+      - name: Build Docker Image
         run: |
           echo "Building Docker image: $IMAGE"
-          # Use the "app" folder as the build context (so that Dockerfile and requirements.txt in "app" are used)
+          # Use the "app" folder as the build context
           docker build -f app/Dockerfile -t $IMAGE app
 
-      - name: Push Docker Image
+      - name: Push Docker Image to Artifact Registry
         run: |
           echo "Pushing Docker image: $IMAGE"
           docker push $IMAGE
@@ -50,7 +46,8 @@ jobs:
       - name: Update Deployment Manifest
         run: |
           echo "Updating image in manifests/deployment.yaml to: $IMAGE"
-          # Update the image reference in your deployment manifest (assumed to be in the "manifests" folder)
+          # Update the image reference in the deployment manifest.
+          # This sed command replaces any instance of BASE_IMAGE followed by a tag with the new static tag.
           sed -i "s|${BASE_IMAGE}:[^ ]*|${IMAGE}|g" manifests/deployment.yaml
           echo "Updated deployment manifest:"
           cat manifests/deployment.yaml
