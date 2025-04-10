@@ -13,8 +13,8 @@ jobs:
     env:
       # Use your project details:
       PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-      # The full image path (static tag "v1.1")
-      IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0
+      # The full image path with a dynamic tag using the GitHub run number.
+      IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0.${{ github.run_number }}
 
     steps:
       - name: Checkout Repository
@@ -44,7 +44,7 @@ jobs:
         working-directory: app
         run: |
           echo "Building Docker image: $IMAGE"
-          # Build the image using the Dockerfile in the "app" folder with "app" as context.
+          # Build the image using the Dockerfile in the "app" folder (with "app" as context)
           docker build -t $IMAGE .
 
       - name: Push Docker Image to Artifact Registry
