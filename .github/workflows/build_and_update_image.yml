@@ -9,12 +9,13 @@ jobs:
   build-and-update:
     runs-on: ubuntu-latest
     env:
-      # Your Google Cloud project ID from secrets
+      # Use your project details and desired image naming/versioning:
       PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-      # Base image path (without tag). Adjust if needed.
+      # The base image path without a tag (adjust if needed)
       BASE_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app
-      # Build a new tag using GitHub's run number (example: v1.0.5)
+      # Create a dynamic tag (e.g., v1.0.run_number)
       IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0.${{ github.run_number }}
+      # You may need these for later steps (like fetching GKE credentials) if you ever want to add them.
       CLUSTER: ${{ secrets.GKE_CLUSTER }}
       ZONE: ${{ secrets.GKE_ZONE }}
     steps:
@@ -35,7 +36,8 @@ jobs:
       - name: Build Docker Image with New Tag
         run: |
           echo "Building Docker image: $IMAGE"
-          # Use the app folder as the build context.
+          # Build the image using the Dockerfile in the app folder. 
+          # Set the build context as the app folder.
           docker build -f app/Dockerfile -t $IMAGE app
 
       - name: Push Docker Image
@@ -46,34 +48,24 @@ jobs:
       - name: Update Kubernetes Deployment Manifest
         run: |
           echo "Updating image in manifests/deployment.yaml to: $IMAGE"
-          # Replace the old image reference in the deployment manifest with the new IMAGE.
+          # Replace the existing image reference with the new image.
+          # This command expects that your manifest contains a line with the base image and an existing tag.
           sed -i "s|${BASE_IMAGE}:[^ ]*|${IMAGE}|g" manifests/deployment.yaml
           echo "Updated deployment manifest:"
           cat manifests/deployment.yaml
 
-      - name: Commit and Push Updated Manifests
+      - name: Commit and Push Updated Manifest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          # Check if there are changes in the manifest
           if [ -n "$(git status --porcelain manifests/deployment.yaml)" ]; then
               echo "Changes detected in manifests/deployment.yaml; committing..."
               git add manifests/deployment.yaml
-              git commit -m "Update image version in deployment to ${IMAGE}"
+              git commit -m "Update deployment image to ${IMAGE}"
               git push
           else
               echo "No changes detected in manifests/deployment.yaml."
           fi
-
-      - name: Get GKE Cluster Credentials
-        run: |
-          gcloud container clusters get-credentials $CLUSTER --zone $ZONE --project $PROJECT_ID
-
-      - name: (Optional) Deploy to GKE Directly
-        run: |
-          # Uncomment the lines below if you wish to apply the manifests immediately.
-          # kubectl apply -f manifests/deployment.yaml
-          # kubectl apply -f manifests/service.yaml
-          # kubectl rollout status deployment/house-price-api
-          echo "Deployment manifests updated. ArgoCD should detect the change and deploy the new image."
