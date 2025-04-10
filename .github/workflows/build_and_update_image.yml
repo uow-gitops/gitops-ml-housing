@@ -36,8 +36,3 @@ jobs:
         run: |
           echo "Building Docker image: $IMAGE"
           docker build -f app/Dockerfile -t $IMAGE app
-
-      - name: Push Docker Image
-        run: |
-          echo "Pushing Docker image: $IMAGE"
-          docker push $IMAGE
