@@ -16,7 +16,7 @@ jobs:
       # IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0
       # Here we use a dynamic tag for versioning:
       BASE_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app
-      IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0.${{ github.run_number }}
+      IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0
       # These variables are available if needed later
       CLUSTER: ${{ secrets.GKE_CLUSTER }}
       ZONE: ${{ secrets.GKE_ZONE }}
