@@ -9,13 +9,11 @@ jobs:
   build-and-update:
     runs-on: ubuntu-latest
     env:
-      # Your Google Cloud project ID (e.g., "recoai-455707")
       PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-      # Base image path without a tag.
+      # Base image path without tag
       BASE_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app
-      # Build a new image tag dynamically (example: v1.0.10)
+      # New image tag using GitHub run number
       IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0.${{ github.run_number }}
-      # These are available if you need them later (but are not used to deploy directly)
       CLUSTER: ${{ secrets.GKE_CLUSTER }}
       ZONE: ${{ secrets.GKE_ZONE }}
     steps:
@@ -36,8 +34,21 @@ jobs:
       - name: Build Docker Image with New Tag
         run: |
           echo "Building Docker image: $IMAGE"
-          # Build the image using the Dockerfile in the "app" folder.
+          # Use the "app" folder as build context.
           docker build -f app/Dockerfile -t $IMAGE app
+
+      - name: Check Service Account Permissions
+        run: |
+          # Get the active service account email.
+          SERVICE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+          echo "Active service account: $SERVICE_ACCOUNT"
+          # Check that the service account has a role containing 'artifactregistry.writer'
+          if gcloud projects get-iam-policy $PROJECT_ID --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.members:${SERVICE_ACCOUNT}" | grep -qi "artifactregistry.writer"; then
+              echo "Service account has Artifact Registry Writer permissions."
+          else
+              echo "ERROR: Service account does not have Artifact Registry Writer permissions."
+              exit 1
+          fi
 
       - name: Push Docker Image
         run: |
@@ -47,8 +58,7 @@ jobs:
       - name: Update Kubernetes Deployment Manifest
         run: |
           echo "Updating image in manifests/deployment.yaml to: $IMAGE"
-          # Replace the image reference in the deployment manifest.
-          # This assumes that the manifest contains a line with the old image formatted as BASE_IMAGE:<tag>.
+          # Replace the old image reference in the deployment manifest.
           sed -i "s|${BASE_IMAGE}:[^ ]*|${IMAGE}|g" manifests/deployment.yaml
           echo "Updated deployment manifest:"
           cat manifests/deployment.yaml
@@ -62,7 +72,7 @@ jobs:
           if [ -n "$(git status --porcelain manifests/deployment.yaml)" ]; then
               echo "Changes detected in manifests/deployment.yaml; committing..."
               git add manifests/deployment.yaml
-              git commit -m "Update deployment image to ${IMAGE}"
+              git commit -m "Update image version in manifests to ${IMAGE}"
               git push
           else
               echo "No changes detected in manifests/deployment.yaml."
