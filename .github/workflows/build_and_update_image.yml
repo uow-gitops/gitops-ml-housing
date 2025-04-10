@@ -38,12 +38,16 @@ jobs:
 
       - name: Check Service Account Permissions
         run: |
-          # Explicitly activate the service account using the provided key.
-          gcloud auth activate-service-account --key-file=${{ secrets.GCP_SA_KEY }}
-          # List the active account
+          # Write the service account key to a file
+          echo "${{ secrets.GCP_SA_KEY }}" > key.json
+          # Activate the service account using the temporary key file
+          gcloud auth activate-service-account --key-file=key.json
+          # Remove the key file after use (optional for security)
+          rm key.json
+          # Get the active service account
           ACTIVE_ACCOUNT=$(gcloud auth list --filter="status:ACTIVE" --format="value(account)")
           echo "Active service account: $ACTIVE_ACCOUNT"
-          # Check if the active service account has the Artifact Registry Writer role
+          # Check that the active service account has Artifact Registry Writer role
           if gcloud projects get-iam-policy $PROJECT_ID --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.members:$ACTIVE_ACCOUNT" | grep -qi "artifactregistry.writer"; then
               echo "Service account has Artifact Registry Writer permissions."
           else
