@@ -1,68 +1,53 @@
-name: Build Image and Update Deployment Manifest
+name: CI/CD Pipeline for ML Model Deployment
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
-  build-and-update:
+  build-and-push:
     runs-on: ubuntu-latest
 
     env:
+      # Use your project details:
       PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-      # Base image path without tag – repository is "ml-housing-repo" and image is "ml-housing-app"
-      BASE_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app
-      # Use a static tag "v1.0"
+      # The full image path (static tag "v1.0")
       IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: List Repository Files (Debug)
+        run: |
+          echo "Repository structure:"
+          ls -R $GITHUB_WORKSPACE
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: ${{ env.PROJECT_ID }}
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          export_default_credentials: true
+          project_id: ${{ secrets.GCP_PROJECT }}
 
       - name: Configure Docker for Artifact Registry
         run: |
-          gcloud config set project ${PROJECT_ID}
+          # Configure Docker to authenticate with your Artifact Registry in us-central1
           gcloud auth configure-docker us-central1-docker.pkg.dev
 
       - name: Build Docker Image
+        working-directory: app
         run: |
           echo "Building Docker image: $IMAGE"
-          # Use the "app" folder as the build context
-          docker build -f app/Dockerfile -t $IMAGE app
+          # Build the image using the Dockerfile in the "app" folder with "app" as context.
+          docker build -t $IMAGE .
 
       - name: Push Docker Image to Artifact Registry
         run: |
           echo "Pushing Docker image: $IMAGE"
           docker push $IMAGE
-
-      - name: Update Deployment Manifest
-        run: |
-          echo "Updating image in manifests/deployment.yaml to: $IMAGE"
-          # Update the image reference in the deployment manifest.
-          # This sed command replaces any instance of BASE_IMAGE followed by a tag with the new static tag.
-          sed -i "s|${BASE_IMAGE}:[^ ]*|${IMAGE}|g" manifests/deployment.yaml
-          echo "Updated deployment manifest:"
-          cat manifests/deployment.yaml
-
-      - name: Commit and Push Updated Manifest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -n "$(git status --porcelain manifests/deployment.yaml)" ]; then
-              echo "Changes detected in manifests/deployment.yaml; committing..."
-              git add manifests/deployment.yaml
-              git commit -m "Update deployment image to ${IMAGE}"
-              git push
-          else
-              echo "No changes detected in manifests/deployment.yaml."
-          fi
