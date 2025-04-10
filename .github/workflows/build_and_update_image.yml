@@ -10,9 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-      # Base image path without tag
+      # Base image path (without tag) – repository is "ml-housing-repo", image is "ml-housing-app"
       BASE_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app
-      # New image tag using GitHub run number
+      # Build a new image tag dynamically (e.g., v1.0.<run_number>)
       IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0.${{ github.run_number }}
       CLUSTER: ${{ secrets.GKE_CLUSTER }}
       ZONE: ${{ secrets.GKE_ZONE }}
@@ -34,16 +34,17 @@ jobs:
       - name: Build Docker Image with New Tag
         run: |
           echo "Building Docker image: $IMAGE"
-          # Use the "app" folder as build context.
           docker build -f app/Dockerfile -t $IMAGE app
 
       - name: Check Service Account Permissions
         run: |
-          # Get the active service account email.
-          SERVICE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
-          echo "Active service account: $SERVICE_ACCOUNT"
-          # Check that the service account has a role containing 'artifactregistry.writer'
-          if gcloud projects get-iam-policy $PROJECT_ID --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.members:${SERVICE_ACCOUNT}" | grep -qi "artifactregistry.writer"; then
+          # Explicitly activate the service account using the provided key.
+          gcloud auth activate-service-account --key-file=${{ secrets.GCP_SA_KEY }}
+          # List the active account
+          ACTIVE_ACCOUNT=$(gcloud auth list --filter="status:ACTIVE" --format="value(account)")
+          echo "Active service account: $ACTIVE_ACCOUNT"
+          # Check if the active service account has the Artifact Registry Writer role
+          if gcloud projects get-iam-policy $PROJECT_ID --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.members:$ACTIVE_ACCOUNT" | grep -qi "artifactregistry.writer"; then
               echo "Service account has Artifact Registry Writer permissions."
           else
               echo "ERROR: Service account does not have Artifact Registry Writer permissions."
@@ -55,13 +56,20 @@ jobs:
           echo "Pushing Docker image: $IMAGE"
           docker push $IMAGE
 
-      - name: Update Kubernetes Deployment Manifest
+      - name: Update Kubernetes Deployment and Service Manifests
         run: |
           echo "Updating image in manifests/deployment.yaml to: $IMAGE"
-          # Replace the old image reference in the deployment manifest.
           sed -i "s|${BASE_IMAGE}:[^ ]*|${IMAGE}|g" manifests/deployment.yaml
-          echo "Updated deployment manifest:"
+          echo "Updated manifests/deployment.yaml:"
           cat manifests/deployment.yaml
+          if [ -f manifests/service.yaml ]; then
+            echo "Updating image in manifests/service.yaml to: $IMAGE"
+            sed -i "s|${BASE_IMAGE}:[^ ]*|${IMAGE}|g" manifests/service.yaml
+            echo "Updated manifests/service.yaml:"
+            cat manifests/service.yaml
+          else
+            echo "manifests/service.yaml not found; skipping update for service."
+          fi
 
       - name: Commit and Push Updated Manifest
         env:
@@ -69,11 +77,11 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -n "$(git status --porcelain manifests/deployment.yaml)" ]; then
-              echo "Changes detected in manifests/deployment.yaml; committing..."
-              git add manifests/deployment.yaml
+          if [ -n "$(git status --porcelain manifests/deployment.yaml)" ] || [ -n "$(git status --porcelain manifests/service.yaml)" ]; then
+              echo "Changes detected in manifests; committing..."
+              git add manifests/deployment.yaml manifests/service.yaml
               git commit -m "Update image version in manifests to ${IMAGE}"
               git push
           else
-              echo "No changes detected in manifests/deployment.yaml."
+              echo "No changes detected in manifests."
           fi
