@@ -14,10 +14,6 @@ model = pickle.load(open('model/model.pkl', 'rb'))
 def home():
     return render_template("index.html")
 
-@app.route("/health")
-async health_check()():
-     return {"status": "healthy"}
-
 @app.route('/', methods=['GET', 'POST'])
 def main():
 

@@ -1,0 +1,81 @@
+name: Build Image and Update Manifests for ArgoCD
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-update:
+    runs-on: ubuntu-latest
+    env:
+      # Your project details
+      PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+      # Base image path (without tag); adjust as needed.
+      BASE_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app
+      # Create a new tag using GitHub's run number (customize versioning as desired)
+      NEW_TAG: v1.0.${{ github.run_number }}
+      # Full new image name
+      IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:${{ env.NEW_TAG }}
+      CLUSTER: ${{ secrets.GKE_CLUSTER }}
+      ZONE: ${{ secrets.GKE_ZONE }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker
+
+      - name: Build Docker Image with New Tag
+        run: |
+          echo "Building Docker image: $IMAGE"
+          docker build -t $IMAGE .
+
+      - name: Push Docker Image
+        run: |
+          echo "Pushing Docker image: $IMAGE"
+          docker push $IMAGE
+
+      - name: Update Kubernetes Deployment Manifest
+        run: |
+          echo "Updating image in manifests/deployment.yaml to: $IMAGE"
+          # Use sed to replace the old image (using BASE_IMAGE and an arbitrary tag) with the new one.
+          sed -i "s|${BASE_IMAGE}:[^ ]*|${IMAGE}|g" manifests/deployment.yaml
+          echo "Updated deployment manifest:"
+          cat manifests/deployment.yaml
+
+      - name: Commit and Push Updated Manifests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain manifests/deployment.yaml)" ]; then
+            echo "Changes detected in manifests/deployment.yaml; committing..."
+            git add manifests/deployment.yaml
+            git commit -m "Update image version in deployment to ${IMAGE}"
+            git push
+          else
+            echo "No changes detected in manifests/deployment.yaml."
+          fi
+
+      - name: Get GKE Cluster Credentials
+        run: |
+          gcloud container clusters get-credentials $CLUSTER --zone $ZONE --project $PROJECT_ID
+
+      - name: (Optional) Deploy to GKE Directly
+        run: |
+          # If you want to immediately apply the updated manifests in your cluster rather than only relying on ArgoCD,
+          # uncomment the next lines.
+          # kubectl apply -f manifests/deployment.yaml
+          # kubectl apply -f manifests/service.yaml
+          # kubectl rollout status deployment/house-price-api
+          echo "Deployment manifests updated. ArgoCD should detect the change and deploy the new image."

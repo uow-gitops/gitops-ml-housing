@@ -26,7 +26,7 @@ import os
 
 def main_training():
     # Import dataset
-    df = pd.read_csv('Resources/melbourne_housing.csv')
+    df = pd.read_csv('app/Resources/melbourne_housing.csv')
     print("Initial dataframe info:")
     print(df.head())
     print(df.info())
@@ -147,7 +147,7 @@ def main_training():
     ###################### Data preparation
     
     # Save cleaned data as CSV
-    melbourne_df.to_csv('Resources/melbourne.csv', index=False)
+    melbourne_df.to_csv('app/Resources/melbourne.csv', index=False)
     melbourne_df.columns = [c.lower() for c in melbourne_df.columns]
     
     # Connect to Postgres and import data into SQL
@@ -264,7 +264,7 @@ def main_training():
     print(pd.DataFrame({"Prediction": y_pred, "Actual": y_test}))
     
     # Save the trained Decision Tree model in the 'app/model' folder
-    model_dir = 'model'
+    model_dir = 'app/model'
     model_file = os.path.join(model_dir, 'model.pkl')
     
     # Ensure the directory exists
