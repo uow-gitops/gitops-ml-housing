@@ -10,13 +10,13 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+        with:
+          persist-credentials: false
 
       - name: Update Image Tag in Deployment Manifest
         run: |
           echo "Updating deployment manifest with new image tag..."
-          # This sed command searches for any instance matching:
-          # us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0.<number>
-          # and replaces it with the new tag: v1.0.40.
+          # Replace any occurrence of an image tag that starts with v1.0.<number> with v1.0.40.
           sed -i "s|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1\.0\.[0-9]*|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0.40|g" manifests/deployment.yaml
           echo "Updated deployment manifest:"
           cat manifests/deployment.yaml
@@ -25,21 +25,17 @@ jobs:
         env:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
         run: |
-          # Set the Git user to your actual GitHub username, not the default bot.
+          # Set Git config to use your actual GitHub username and email
           git config --global user.name "fj405UOW"
           git config --global user.email "fj405UOW@users.noreply.github.com"
           if [ -n "$(git status --porcelain manifests/deployment.yaml)" ]; then
-              echo "Changes detected in manifests/deployment.yaml, committing and pushing..."
+              echo "Changes detected, committing and pushing..."
               git add manifests/deployment.yaml
               git commit -m "Update image tag to v1.0.40 in deployment manifest"
-              # Print current remote URL for debugging
-              echo "Current remote URL:"
-              git remote -v
-              # Set the remote URL explicitly with your PAT (using your username)
+              # Set the remote URL using your username (fj405UOW) and the PAT from PUSH_TOKEN
               git remote set-url origin https://fj405UOW:${PUSH_TOKEN}@github.com/bmmahmud/gitops-ml-housing.git
               echo "Updated remote URL:"
               git remote -v
-              # Push to master
               git push origin master
           else
               echo "No changes detected in the deployment manifest."
