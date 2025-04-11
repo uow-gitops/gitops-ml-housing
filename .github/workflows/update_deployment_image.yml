@@ -15,7 +15,7 @@ jobs:
         run: |
           echo "Updating deployment manifest with new image tag..."
           # The sed command replaces any tag that starts with v1.0. with v1.0.40
-          sed -i "s|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1\.0\.[0-9]*|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0.30|g" manifests/deployment.yaml
+          sed -i "s|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1\.0\.[0-9]*|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0.40|g" manifests/deployment.yaml
           echo "Updated deployment manifest:"
           cat manifests/deployment.yaml
 
@@ -28,7 +28,7 @@ jobs:
           if [ -n "$(git status --porcelain manifests/deployment.yaml)" ]; then
               echo "Changes detected, committing and pushing..."
               git add manifests/deployment.yaml
-              git commit -m "Update image tag to v1.0.30 in deployment manifest"
+              git commit -m "Update image tag to v1.0.40 in deployment manifest"
               git push
           else
               echo "No changes detected in the deployment manifest."
