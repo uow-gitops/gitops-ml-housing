@@ -1,19 +1,19 @@
-name: Build Image and Deploy
+name: Build Image and Update Deployment Manifest
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
-  build-and-push:
+  build-and-update:
     runs-on: ubuntu-latest
 
     env:
-      # Use your project details:
       PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-      # The full image path with a dynamic tag using the GitHub run number.
+      # BASE_IMAGE is the static base portion of the image path.
+      BASE_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app
+      # IMAGE is built using a dynamic tag (e.g., v1.0.21); adjust as needed.
       IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/ml-housing-repo/ml-housing-app:v1.0.${{ github.run_number }}
 
     steps:
@@ -21,34 +21,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-
-      - name: Update Image Tag in Deployment Manifest
-        run: |
-          echo "Updating deployment manifest with new image tag..."
-          # Replace any occurrence of an image tag that starts with v1.0.<number> with v1.0.${{ github.run_number }}.
-          sed -i "s|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1\.0\.[0-9]*|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0.${{ github.run_number }}|g" manifests/deployment.yaml
-          echo "Updated deployment manifest:"
-          cat manifests/deployment.yaml
-
-      - name: Commit and Push Updated Manifest
-        env:
-          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
-        run: |
-          # Set Git config to use your actual GitHub username and email
-          git config --global user.name "fj405UOW"
-          git config --global user.email "fj405UOW@users.noreply.github.com"
-          if [ -n "$(git status --porcelain manifests/deployment.yaml)" ]; then
-              echo "Changes detected, committing and pushing..."
-              git add manifests/deployment.yaml
-              git commit -m "Update image tag to v1.0.${{ github.run_number }} in deployment manifest"
-              # Set the remote URL using your username (fj405UOW) and the PAT from PUSH_TOKEN
-              git remote set-url origin https://fj405UOW:${PUSH_TOKEN}@github.com/bmmahmud/gitops-ml-housing.git
-              echo "Updated remote URL:"
-              git remote -v
-              git push origin master
-          else
-              echo "No changes detected in the deployment manifest."
-          fi
 
       - name: List Repository Files (Debug)
         run: |
@@ -67,22 +39,46 @@ jobs:
 
       - name: Configure Docker for Artifact Registry
         run: |
-          # Configure Docker to authenticate with your Artifact Registry in us-central1
+          gcloud config set project ${PROJECT_ID}
           gcloud auth configure-docker us-central1-docker.pkg.dev
 
       - name: Build Docker Image
         working-directory: app
         run: |
           echo "Building Docker image: $IMAGE"
-          # Build the image using the Dockerfile in the "app" folder (with "app" as context)
-          docker build -t $IMAGE .
+          docker build -f Dockerfile -t $IMAGE .
 
       - name: Push Docker Image to Artifact Registry
         run: |
           echo "Pushing Docker image: $IMAGE"
           docker push $IMAGE
-      
-          - name: Checkout Repository
-          uses: actions/checkout@v3
-          with:
-            persist-credentials: false
+
+      - name: Update Image Tag in Deployment Manifest
+        run: |
+          echo "Updating deployment manifest with new image tag..."
+          # This sed command replaces any occurrence of:
+          # us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0.<number>
+          # with the new image tag stored in $IMAGE.
+          sed -i "s|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1\.0\.[0-9]*|$IMAGE|g" manifests/deployment.yaml
+          echo "Updated deployment manifest:"
+          cat manifests/deployment.yaml
+
+      - name: Commit and Push Updated Manifest
+        env:
+          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+        run: |
+          # Set git config to use your GitHub username "fj405UOW"
+          git config --global user.name "fj405UOW"
+          git config --global user.email "fj405UOW@users.noreply.github.com"
+          if [ -n "$(git status --porcelain manifests/deployment.yaml)" ]; then
+              echo "Changes detected, committing and pushing..."
+              git add manifests/deployment.yaml
+              git commit -m "Update image tag to v1.0.${{ github.run_number }} in deployment manifest"
+              # Set the remote URL using your PAT and username
+              git remote set-url origin https://fj405UOW:${PUSH_TOKEN}@github.com/bmmahmud/gitops-ml-housing.git
+              echo "Updated remote URL:"
+              git remote -v
+              git push origin master
+          else
+              echo "No changes detected in the deployment manifest."
+          fi
