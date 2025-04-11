@@ -14,7 +14,7 @@ jobs:
       - name: Update Image Tag in Deployment Manifest
         run: |
           echo "Updating deployment manifest with new image tag..."
-          # The sed command replaces any tag that starts with v1.0. with v1.0.30
+          # The sed command replaces any tag that starts with v1.0. with v1.0.40
           sed -i "s|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1\.0\.[0-9]*|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0.30|g" manifests/deployment.yaml
           echo "Updated deployment manifest:"
           cat manifests/deployment.yaml
