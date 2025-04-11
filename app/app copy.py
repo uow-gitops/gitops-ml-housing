@@ -14,4 +14,13 @@ model = pickle.load(open('model/model.pkl', 'rb'))
 def home():
     return render_template("index.html")
 
+@app.route('/', methods=['GET', 'POST'])
+def main():
 
+    int_features = [float(x) for x in request.form.values()]
+    final_features = [np.array(int_features)]
+    prediction = model.predict(final_features)
+    
+    return render_template('index.html', prediction_text ='The estimate price is :{}'.format(prediction))
+if __name__ == '__main__':  
+   app.run(debug = True)
