@@ -14,8 +14,4 @@ model = pickle.load(open('model/model.pkl', 'rb'))
 def home():
     return render_template("index.html")
 
-@app.route('/', methods=['GET', 'POST'])
-def main():
 
-    int_features = [float(x) for x in request.form.values()]
-    final_features = [np.array(int_features)]
