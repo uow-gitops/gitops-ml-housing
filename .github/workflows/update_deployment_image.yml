@@ -14,7 +14,7 @@ jobs:
       - name: Update Image Tag in Deployment Manifest
         run: |
           echo "Updating deployment manifest with new image tag..."
-          # Replace any tag that starts with "v1.0." (e.g., v1.0.<number>) with "v1.0.40"
+          # Replace any occurrence of the old image with the new static tag v1.0.40
           sed -i "s|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1\.0\.[0-9]*|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0.40|g" manifests/deployment.yaml
           echo "Updated deployment manifest:"
           cat manifests/deployment.yaml
@@ -29,7 +29,9 @@ jobs:
               echo "Changes detected, committing and pushing..."
               git add manifests/deployment.yaml
               git commit -m "Update image tag to v1.0.40 in deployment manifest"
-              git push https://fj405UOW:${PUSH_TOKEN}@github.com/bmmahmud/gitops-ml-housing.git master
+              # Set the remote URL explicitly using your username (fj405UOW) and the PAT
+              git remote set-url origin https://fj405UOW:${PUSH_TOKEN}@github.com/bmmahmud/gitops-ml-housing.git
+              git push origin master
           else
               echo "No changes detected in the deployment manifest."
           fi
