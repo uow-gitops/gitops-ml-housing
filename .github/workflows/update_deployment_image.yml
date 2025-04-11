@@ -19,7 +19,7 @@ jobs:
           echo "Updated deployment manifest:"
           cat manifests/deployment.yaml
 
-      - name: Commit and Push Changes
+      - name: Commit and Push Updated Manifest
         env:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
         run: |
@@ -29,8 +29,7 @@ jobs:
               echo "Changes detected, committing and pushing..."
               git add manifests/deployment.yaml
               git commit -m "Update image tag to v1.0.40 in deployment manifest"
-              # Include your GitHub username in the push URL
-              git push https://bmmahmud:${PUSH_TOKEN}@github.com/bmmahmud/gitops-ml-housing.git master
+              git push https://fj405UOW:${PUSH_TOKEN}@github.com/bmmahmud/gitops-ml-housing.git master
           else
               echo "No changes detected in the deployment manifest."
           fi
