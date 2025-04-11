@@ -1,4 +1,4 @@
-name: CI/CD Pipeline for ML Model Deployment
+name: Build Image and Deploy
 
 on:
   push:
