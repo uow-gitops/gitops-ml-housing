@@ -1,7 +1,7 @@
 name: Update Deployment Image
 
 on:
-  workflow_dispatch:  # You can trigger this manually, or use 'push' events as needed
+  workflow_dispatch:
 
 jobs:
   update-image:
@@ -14,14 +14,14 @@ jobs:
       - name: Update Image Tag in Deployment Manifest
         run: |
           echo "Updating deployment manifest with new image tag..."
-          # The sed command replaces any tag that starts with v1.0. with v1.0.40
+          # Replace any tag matching "v1.0.<number>" with "v1.0.40"
           sed -i "s|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1\.0\.[0-9]*|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0.40|g" manifests/deployment.yaml
           echo "Updated deployment manifest:"
           cat manifests/deployment.yaml
 
       - name: Commit and Push Changes
         env:
-          GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
+          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -29,7 +29,8 @@ jobs:
               echo "Changes detected, committing and pushing..."
               git add manifests/deployment.yaml
               git commit -m "Update image tag to v1.0.40 in deployment manifest"
-              git push
+              # Push using HTTPS with the token
+              git push https://${PUSH_TOKEN}@github.com/bmmahmud/gitops-ml-housing.git master
           else
               echo "No changes detected in the deployment manifest."
           fi
