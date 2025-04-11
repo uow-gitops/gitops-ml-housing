@@ -1,0 +1,35 @@
+name: Update Deployment Image
+
+on:
+  workflow_dispatch:  # You can trigger this manually, or use 'push' events as needed
+
+jobs:
+  update-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Update Image Tag in Deployment Manifest
+        run: |
+          echo "Updating deployment manifest with new image tag..."
+          # The sed command replaces any tag that starts with v1.0. with v1.0.30
+          sed -i "s|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1\.0\.[0-9]*|us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0.30|g" manifests/deployment.yaml
+          echo "Updated deployment manifest:"
+          cat manifests/deployment.yaml
+
+      - name: Commit and Push Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain manifests/deployment.yaml)" ]; then
+              echo "Changes detected, committing and pushing..."
+              git add manifests/deployment.yaml
+              git commit -m "Update image tag to v1.0.30 in deployment manifest"
+              git push
+          else
+              echo "No changes detected in the deployment manifest."
+          fi
