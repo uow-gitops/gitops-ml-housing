@@ -26,7 +26,7 @@ import os
 
 def main_training():
     # Import dataset
-    df = pd.read_csv('app/Resources/melbourne_housing.csv')
+    df = pd.read_csv('Resources/melbourne_housing.csv')
     print("Initial dataframe info:")
     print(df.head())
     print(df.info())
@@ -147,22 +147,23 @@ def main_training():
     ###################### Data preparation
     
     # Save cleaned data as CSV
-    melbourne_df.to_csv('app/Resources/melbourne.csv', index=False)
+    melbourne_df.to_csv('Resources/clean_melbourne_housing.csv', index=False)
     melbourne_df.columns = [c.lower() for c in melbourne_df.columns]
     
-    # Connect to Postgres and import data into SQL
-    try:
-        engine = create_engine('postgresql://postgres:Blome00228@localhost:5433/Housing')
-        conn = engine.connect()
-        melbourne_df.to_sql("melbourne", conn, if_exists='replace', index=False)
-        housing_df = pd.read_sql('select * from "melbourne"', conn)
-        conn.close()
-        print("Database import successful. Retrieved table:")
-        print(housing_df)
-    except Exception as e:
-        print("Database connection failed, skipping DB import. Error:", e)
-        housing_df = melbourne_df.copy()
+    # # Connect to Postgres and import data into SQL
+    # try:
+    #     engine = create_engine('postgresql://postgres:Blome00228@localhost:5433/Housing')
+    #     conn = engine.connect()
+    #     melbourne_df.to_sql("melbourne", conn, if_exists='replace', index=False)
+    #     housing_df = pd.read_sql('select * from "melbourne"', conn)
+    #     conn.close()
+    #     print("Database import successful. Retrieved table:")
+    #     print(housing_df)
+    # except Exception as e:
+    #     print("Database connection failed, skipping DB import. Error:", e)
+    #     housing_df = melbourne_df.copy()
     
+    housing_df = melbourne_df.copy()
     ### Encoding categorical features
     encode = LabelEncoder().fit(housing_df['type'])
     carpet = {x: i for i, x in enumerate(encode.classes_)}
@@ -177,6 +178,7 @@ def main_training():
     
     ## Prepare features and target for training
     X = housing_df.drop(["logprice", "price"], axis=1)
+    print("Training feature order:", X.columns.tolist())
     y = housing_df['price']
     
     # Split data into training and testing sets
@@ -263,8 +265,8 @@ def main_training():
     y_pred = model_tree.predict(X_test)
     print(pd.DataFrame({"Prediction": y_pred, "Actual": y_test}))
     
-    # Save the trained Decision Tree model in the 'app/model' folder
-    model_dir = 'app/model'
+    # Save the trained Decision Tree model in the 'model' folder
+    model_dir = 'model'
     model_file = os.path.join(model_dir, 'model.pkl')
     
     # Ensure the directory exists
