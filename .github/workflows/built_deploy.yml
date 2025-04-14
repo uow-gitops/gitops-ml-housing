@@ -77,7 +77,7 @@ jobs:
               git add manifests/deployment.yaml
               git commit -m "Update image tag to v1.0.${{ github.run_number }} in deployment manifest"
               # Set the remote URL using your PAT and username
-              git remote set-url origin https://fj405UOW:${PUSH_TOKEN}@github.com/bmmahmud/gitops-ml-housing.git
+              git remote set-url origin https://fj405UOW:${PUSH_TOKEN}@github.com/uow-gitops/gitops-ml-housing.git
               echo "Updated remote URL:"
               git remote -v
               git push origin master
