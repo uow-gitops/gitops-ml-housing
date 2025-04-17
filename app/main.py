@@ -251,7 +251,7 @@ def main_training():
     base_dir   = os.path.dirname(os.path.abspath(__file__))      # e.g. /home/runner/work/.../app
     model_dir  = os.path.join(base_dir, "model")                 # /.../app/model
     model_file = os.path.join(model_dir, "model.pkl")            # /.../app/model/model.pkl
-
+    print(model_file)
     # 1) Ensure the directory exists
     os.makedirs(model_dir, exist_ok=True)
     print(f"Ensured directory exists: {model_dir}")
