@@ -248,7 +248,7 @@ def main_training():
     print(f"Ridge - Testing Score:  {model_Ridge.score(X_test_scaled, y_test)}")
     
     # Save the trained Decision Tree model in the 'model' folder
-    model_dir = 'app/model'
+    model_dir = 'app'
     model_file = os.path.join(model_dir, 'model.pkl')
     
     # Ensure the directory exists
