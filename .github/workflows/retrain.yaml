@@ -53,11 +53,11 @@ jobs:
 
       - name: Commit & push updated model.pkl
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+          git config --global user.name "fj405UOW"
+          git config --global user.email "fj405UOW@users.noreply.github.com"
           git add app/model/model.pkl
           # only commit if there are changes
           git diff --cached --quiet || git commit -m "Retrained model: update model.pkl"
           git push origin HEAD:master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
