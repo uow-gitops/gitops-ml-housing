@@ -1,5 +1,4 @@
-# app/main.py
-
+# import dependencies
 from __future__ import print_function
 import warnings
 import numpy as np
@@ -14,36 +13,32 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error as mse
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
 import matplotlib as mpl
 warnings.filterwarnings("ignore")
 import psycopg2
 from sqlalchemy import create_engine
 from sklearn.metrics import accuracy_score, confusion_matrix
+import warnings
 import pickle
 import os
 
 def main_training():
     # Import dataset
-    df = pd.read_csv('app/Resources/melbourne_housing.csv')
+    df = pd.read_csv('Resources/melbourne_housing.csv')
     print("Initial dataframe info:")
     print(df.head())
     print(df.info())
     
     # Drop unnecessary columns
-    df.drop([
-        "SellerG", "Method", "BuildingArea", "YearBuilt",
-        "Lattitude", "Longtitude", "Bedroom2", "Address",
-        "CouncilArea", "Suburb"
-    ], axis=1, inplace=True)
+    df.drop(["SellerG", "Method", "BuildingArea", "YearBuilt", "Lattitude", "Longtitude", "Bedroom2", "Address", "CouncilArea", "Suburb"], axis=1, inplace=True)
     print("After dropping unnecessary columns, shape =", df.shape)
 
     # Rename columns
-    melbourne_df = df.rename(columns={
-        "Landsize": "Land Size",
-        "Regionname": "Region",
-        "Propertycount": "Property Count"
-    })
+    melbourne_df = df.rename(columns={"Landsize": "Land Size",
+                                      "Regionname": "Region",
+                                      "Propertycount": "Property Count"})
     
     # Check and drop missing data
     print("Missing values before dropna:")
@@ -102,8 +97,7 @@ def main_training():
     # sns.boxplot(y="Price", data=melbourne_df)
     # finding_outliers(melbourne_df, "Price").sort_values("Price")
     # iqr_price = melbourne_df["Price"].quantile(0.75) - melbourne_df["Price"].quantile(0.25)
-    # melbourne_df.loc[(finding_outliers(melbourne_df, "Price").index, "Price")] = \
-    #     melbourne_df["Price"].quantile(0.75) + 1.5 * iqr_price
+    # melbourne_df.loc[(finding_outliers(melbourne_df, "Price").index, "Price")] = melbourne_df["Price"].quantile(0.75) + 1.5 * iqr_price
     # plt.figure(figsize=(8,8))
     # sns.boxplot(y="Price", data=melbourne_df)
     # -----------------------------------------------------------------
@@ -114,8 +108,7 @@ def main_training():
     # sns.boxplot(y="Rooms", data=melbourne_df)
     # finding_outliers(melbourne_df, "Rooms").sort_values("Rooms")
     # iqr_rooms = melbourne_df["Rooms"].quantile(0.75) - melbourne_df["Rooms"].quantile(0.25)
-    # melbourne_df.loc[(finding_outliers(melbourne_df, "Rooms").index, "Rooms")] = \
-    #     melbourne_df["Rooms"].quantile(0.75) + 1.5 * iqr_rooms
+    # melbourne_df.loc[(finding_outliers(melbourne_df, "Rooms").index, "Rooms")] = melbourne_df["Rooms"].quantile(0.75) + 1.5 * iqr_rooms
     # plt.figure(figsize=(8,8))
     # sns.boxplot(y="Rooms", data=melbourne_df)
     # -----------------------------------------------------------------
@@ -126,8 +119,7 @@ def main_training():
     # sns.boxplot(y="Bathroom", data=melbourne_df)
     # finding_outliers(melbourne_df, "Bathroom").sort_values("Bathroom")
     # iqr_bath = melbourne_df["Bathroom"].quantile(0.75) - melbourne_df["Bathroom"].quantile(0.25)
-    # melbourne_df.loc[(finding_outliers(melbourne_df, "Bathroom").index, "Bathroom")] = \
-    #     melbourne_df["Bathroom"].quantile(0.75) + 1.5 * iqr_bath
+    # melbourne_df.loc[(finding_outliers(melbourne_df, "Bathroom").index, "Bathroom")] = melbourne_df["Bathroom"].quantile(0.75) + 1.5 * iqr_bath
     # plt.figure(figsize=(8,8))
     # sns.boxplot(y="Bathroom", data=melbourne_df)
     # plt.show()
@@ -155,12 +147,23 @@ def main_training():
     ###################### Data preparation
     
     # Save cleaned data as CSV
-    melbourne_df.to_csv('app/Resources/clean_melbourne_housing.csv', index=False)
+    melbourne_df.to_csv('Resources/clean_melbourne_housing.csv', index=False)
     melbourne_df.columns = [c.lower() for c in melbourne_df.columns]
     
-    # Use local copy instead of DB
-    housing_df = melbourne_df.copy()
+    # # Connect to Postgres and import data into SQL
+    # try:
+    #     engine = create_engine('postgresql://postgres:Blome00228@localhost:5433/Housing')
+    #     conn = engine.connect()
+    #     melbourne_df.to_sql("melbourne", conn, if_exists='replace', index=False)
+    #     housing_df = pd.read_sql('select * from "melbourne"', conn)
+    #     conn.close()
+    #     print("Database import successful. Retrieved table:")
+    #     print(housing_df)
+    # except Exception as e:
+    #     print("Database connection failed, skipping DB import. Error:", e)
+    #     housing_df = melbourne_df.copy()
     
+    housing_df = melbourne_df.copy()
     ### Encoding categorical features
     encode = LabelEncoder().fit(housing_df['type'])
     carpet = {x: i for i, x in enumerate(encode.classes_)}
@@ -170,8 +173,8 @@ def main_training():
     carp = {x: i for i, x in enumerate(encoder.classes_)}
     print("Region encoding:", carp)
     
-    housing_df['type'] = encode.transform(housing_df['type'])
-    housing_df['region'] = encoder.transform(housing_df['region'])
+    housing_df['type'] = LabelEncoder().fit_transform(housing_df['type'])
+    housing_df['region'] = LabelEncoder().fit_transform(housing_df['region'])
     
     ## Prepare features and target for training
     X = housing_df.drop(["logprice", "price"], axis=1)
@@ -179,9 +182,7 @@ def main_training():
     y = housing_df['price']
     
     # Split data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
     # Scale features
     scaler = StandardScaler().fit(X_train)
@@ -190,83 +191,97 @@ def main_training():
     
     ## Fit Linear Regression model
     modelR = LinearRegression().fit(X_train_scaled, y_train)
-    print(f"Linear Regression - Training Score: {modelR.score(X_train_scaled, y_train)}")
-    print(f"Linear Regression - Testing Score:  {modelR.score(X_test_scaled, y_test)}")
+    training_score = modelR.score(X_train_scaled, y_train)
+    testing_score = modelR.score(X_test_scaled, y_test)
+    print(f"Linear Regression - Training Score: {training_score}")
+    print(f"Linear Regression - Testing Score: {testing_score}")
     
-    # Fit Random Forest model (using 'mse' under scikit‑learn 0.24.2)
-    model_rf = RandomForestRegressor(
-        n_estimators=100,
-        criterion='mse',
-        random_state=42,
-        max_depth=2
-    ).fit(X_train, y_train)
-    print(f"Random Forest - Training Score: {model_rf.score(X_train, y_train)}")
-    print(f"Random Forest - Testing Score:  {model_rf.score(X_test_scaled, y_test)}")
+    # Fit Random Forest model with updated criterion
+    model_rf = RandomForestRegressor(n_estimators=100, criterion='squared_error', random_state=42, max_depth=2).fit(X_train, y_train)
+    training_score = model_rf.score(X_train, y_train)
+    testing_score = model_rf.score(X_test_scaled, y_test)
+    print(f"Random Forest - Training Score: {training_score}")
+    print(f"Random Forest - Testing Score: {testing_score}")
     
-    # Fit Decision Tree model (using 'mse')
-    model_tree = DecisionTreeRegressor(
-        criterion='mse',
-        random_state=42
-    ).fit(X_train, y_train)
-    print(f"Decision Tree - Training Score: {model_tree.score(X_train, y_train)}")
-    print(f"Decision Tree - Testing Score:  {model_tree.score(X_test, y_test)}")
+    # Fit Decision Tree model
+    model_tree = DecisionTreeRegressor(criterion='squared_error',
+                                       splitter='best', max_depth=None, 
+                                       min_samples_split=2, min_samples_leaf=1, 
+                                       min_weight_fraction_leaf=0.0, max_features=None, 
+                                       random_state=42, max_leaf_nodes=None, 
+                                       min_impurity_decrease=0.0, ccp_alpha=0.0).fit(X_train, y_train)
+    training_score = model_tree.score(X_train, y_train)
+    testing_score = model_tree.score(X_test, y_test)
+    print(f"Decision Tree - Training Score: {training_score}")
+    print(f"Decision Tree - Testing Score: {testing_score}")
     
-    ## Fit Randomized Search model with corrected criterion values
-    param_dists = {
-        'criterion': ['mse', 'friedman_mse'],
-        'max_depth': [3, 4, 7, None],
-        'min_samples_split': np.arange(0.1, 1.1, 0.1),
-        'min_samples_leaf': list(range(1, 21)),
-        'max_features': ['auto', 'sqrt', 'log2', None]
-    }
+    ## Fit Randomized Search model with updated criterion values
+    param_dists = {'criterion': ['squared_error', 'friedman_mse'],
+                   'max_depth': [3, 4, 7, None],
+                   'min_samples_split': np.arange(0.1, 1.1, 0.1),
+                   'min_samples_leaf': list(range(1, 21)),
+                   'max_features': ['auto', 'sqrt', 'log2', None]}
     
-    model_cv = RandomizedSearchCV(
-        RandomForestRegressor(random_state=42),
-        param_distributions=param_dists,
-        n_iter=200,
-        scoring='neg_mean_squared_error',
-        cv=5,
-        random_state=42
-    ).fit(X_train_scaled, y_train)
-    print(f"Randomized Search - Training Score: {model_cv.score(X_train_scaled, y_train)}")
-    print(f"Randomized Search - Testing Score:  {model_cv.score(X_test_scaled, y_test)}")
+    model_cv = RandomizedSearchCV(estimator=RandomForestRegressor(random_state=42),
+                                  param_distributions=param_dists,
+                                  n_iter=200,
+                                  scoring='neg_mean_squared_error',
+                                  cv=5,
+                                  random_state=42).fit(X_train_scaled, y_train)
+    training_score = model_cv.score(X_train_scaled, y_train)
+    testing_score = model_cv.score(X_test_scaled, y_test)
+    print(f"Randomized Search - Training Score: {training_score}")
+    print(f"Randomized Search - Testing Score: {testing_score}")
     
     # Fit SVR model
     from sklearn.svm import SVR
     regressor = SVR(kernel="rbf").fit(X_train_scaled, y_train)
-    print(f"SVR - Training Score: {regressor.score(X_train_scaled, y_train)}")
-    print(f"SVR - Testing Score:  {regressor.score(X_test_scaled, y_test)}")
+    training_score = regressor.score(X_train_scaled, y_train)
+    testing_score = regressor.score(X_test_scaled, y_test)
+    print(f"SVR - Training Score: {training_score}")
+    print(f"SVR - Testing Score: {testing_score}")
     
     # Fit Lasso model
     model_lasso = Lasso(alpha=1.0, max_iter=1000).fit(X_train_scaled, y_train)
-    print(f"Lasso - Training Score: {model_lasso.score(X_train_scaled, y_train)}")
-    print(f"Lasso - Testing Score:  {model_lasso.score(X_test_scaled, y_test)}")
+    training_score = model_lasso.score(X_train_scaled, y_train)
+    testing_score = model_lasso.score(X_test_scaled, y_test)
+    print(f"Lasso - Training Score: {training_score}")
+    print(f"Lasso - Testing Score: {testing_score}")
     
     # Fit Ridge model
-    model_Ridge = Ridge(alpha=100).fit(X_train_scaled, y_train)
-    print(f"Ridge - Training Score: {model_Ridge.score(X_train_scaled, y_train)}")
-    print(f"Ridge - Testing Score:  {model_Ridge.score(X_test_scaled, y_test)}")
+    model_Ridge = Ridge(alpha=100).fit(X_train, y_train)
+    training_score = model_Ridge.score(X_train_scaled, y_train)
+    testing_score = model_Ridge.score(X_test_scaled, y_test)
+    print(f"Ridge - Training Score: {training_score}")
+    print(f"Ridge - Testing Score: {testing_score}")
     
-    # Save the trained Decision Tree model in the 'app/model' folder
-    base_dir   = os.path.dirname(os.path.abspath(__file__))      # e.g. /home/runner/work/.../app
-    model_dir  = os.path.join(base_dir, "model")                 # /.../app/model
-    model_file = os.path.join(model_dir, "model.pkl")            # /.../app/model/model.pkl
-    print(model_file)
-    # 1) Ensure the directory exists
-    os.makedirs(model_dir, exist_ok=True)
-    print(f"Ensured directory exists: {model_dir}")
-
-    # 2) Remove any stale file
+    # Make predictions and display comparisons
+    y_pred = modelR.predict(X_test)
+    print(pd.DataFrame({"Prediction": y_pred, "Actual": y_test}))
+    
+    y_pred = model_lasso.predict(X_test)
+    print(pd.DataFrame({"Prediction": y_pred, "Actual": y_test}))
+    
+    y_pred = model_tree.predict(X_test)
+    print(pd.DataFrame({"Prediction": y_pred, "Actual": y_test}))
+    
+    # Save the trained Decision Tree model in the 'model' folder
+    model_dir = 'model'
+    model_file = os.path.join(model_dir, 'model.pkl')
+    
+    # Ensure the directory exists
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+        print(f"Created directory: {model_dir}")
+    
+    # Remove the old file if it exists
     if os.path.exists(model_file):
         os.remove(model_file)
         print(f"Removed old file: {model_file}")
-
-    # 3) Write out the newly trained model
-    with open(model_file, "wb") as f:
-        pickle.dump(model_tree, f)
+    
+    # Save the new model
+    pickle.dump(model_tree, open(model_file, 'wb'))
     print(f"Created new model file: {model_file}")
-
-
 
 if __name__ == "__main__":
     import sys
