@@ -26,7 +26,7 @@ import os
 
 def main_training():
     # Import dataset
-    df = pd.read_csv('Resources/melbourne_housing.csv')
+    df = pd.read_csv('app/Resources/melbourne_housing.csv')
     print("Initial dataframe info:")
     print(df.head())
     print(df.info())
@@ -147,7 +147,7 @@ def main_training():
     ###################### Data preparation
     
     # Save cleaned data as CSV
-    melbourne_df.to_csv('Resources/clean_melbourne_housing.csv', index=False)
+    melbourne_df.to_csv('app/Resources/clean_melbourne_housing.csv', index=False)
     melbourne_df.columns = [c.lower() for c in melbourne_df.columns]
     
     # # Connect to Postgres and import data into SQL
