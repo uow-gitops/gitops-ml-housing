@@ -247,23 +247,25 @@ def main_training():
     print(f"Ridge - Training Score: {model_Ridge.score(X_train_scaled, y_train)}")
     print(f"Ridge - Testing Score:  {model_Ridge.score(X_test_scaled, y_test)}")
     
-    # Save the trained Decision Tree model in the 'model' folder
-    model_dir = 'app'
-    model_file = os.path.join(model_dir, 'model.pkl')
-    
-    # Ensure the directory exists
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-        print(f"Created directory: {model_dir}")
-    
-    # Remove the old file if it exists
+    # Save the trained Decision Tree model in the 'app/model' folder
+    base_dir   = os.path.dirname(os.path.abspath(__file__))      # e.g. /home/runner/work/.../app
+    model_dir  = os.path.join(base_dir, "model")                 # /.../app/model
+    model_file = os.path.join(model_dir, "model.pkl")            # /.../app/model/model.pkl
+
+    # 1) Ensure the directory exists
+    os.makedirs(model_dir, exist_ok=True)
+    print(f"Ensured directory exists: {model_dir}")
+
+    # 2) Remove any stale file
     if os.path.exists(model_file):
         os.remove(model_file)
         print(f"Removed old file: {model_file}")
-    
-    # Save the new model
-    pickle.dump(model_tree, open(model_file, 'wb'))
+
+    # 3) Write out the newly trained model
+    with open(model_file, "wb") as f:
+        pickle.dump(model_tree, f)
     print(f"Created new model file: {model_file}")
+
 
 
 if __name__ == "__main__":
