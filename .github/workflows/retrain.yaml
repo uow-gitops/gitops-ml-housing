@@ -51,27 +51,13 @@ jobs:
           # Run main.py with the 'retrain' argument so only the training logic runs.
           python app/main.py retrain
 
-      - name: Move New Model File to model/ Folder
+      - name: Commit & push updated model.pkl
         run: |
-          # If the training code outputs the model as model.pkl in the repository root,
-          # move it into the model directory.
-          if [ -f model.pkl ]; then
-            mkdir -p model
-            mv model.pkl model/model.pkl
-            echo "New model file moved to model/model.pkl."
-          elif [ -f model/model.pkl ]; then
-            echo "New model file is already located at model/model.pkl."
-          else
-            echo "New model file not found!"
-            exit 1
-          fi
-
-      - name: Commit and Push New Model File
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add app/model/model.pkl
+          # only commit if there are changes
+          git diff --cached --quiet || git commit -m "Retrained model: update model.pkl"
+          git push origin HEAD:master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config --local user.name "GitHub Actions"
-          git config --local user.email "actions@github.com"
-          git add model/model.pkl
-          git commit -m "Retrained model: updated model.pkl" || echo "No changes detected."
-          git push
