@@ -37,16 +37,22 @@ jobs:
           echo "Listing contents of app/Resources:"
           ls -la app/Resources
 
-      - name: Remove Old Model File
+      - name: Remove old model file
+        run: rm -f app/model/model.pkl
+        
+      - name: Retrain the model
+        working-directory: app
+        run: python main.py retrain
+      - name: Commit & push updated model.pkl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -f model/model.pkl ]; then
-            echo "Removing old model at model/model.pkl..."
-            rm model/model.pkl
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add app/model/model.pkl
+          if ! git diff --cached --quiet; then
+            git commit -m "Retrained model: update model.pkl"
+            git push origin HEAD:master
           else
-            echo "No old model file found in model/ folder."
+            echo "No changes to commit."
           fi
-
-      - name: Retrain the Model
-        run: |
-          # Run main.py with the 'retrain' argument so only the training logic runs.
-          python app/main.py retrain
