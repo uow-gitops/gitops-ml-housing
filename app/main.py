@@ -274,7 +274,7 @@ def main_training():
     
     # Save the trained Decision Tree model in the 'model' folder
     # <<-- FIX #4: write into app/model/model.pkl
-    model_dir  = 'app/model'
+    model_dir  = 'app'
     model_file = os.path.join(model_dir, 'model.pkl')
     # -----------------------------------------------------------------
     
