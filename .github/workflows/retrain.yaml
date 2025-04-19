@@ -74,15 +74,16 @@ jobs:
             echo "No changes to commit."
           fi
           
-      # ⑥ Trigger the built_deploy workflow
-      - name: Dispatch built_deploy.yml
+      # ⑥ Dispatch the built_deploy.yml workflow
+      - name: Trigger built_deploy workflow
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            await github.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+            const { owner, repo } = context.repo;
+            await github.rest.actions.createWorkflowDispatch({
+              owner,
+              repo,
               workflow_id: 'built_deploy.yml',
               ref: 'master'
             });
