@@ -73,5 +73,17 @@ jobs:
           else
             echo "No changes to commit."
           fi
+          
+      # ⑥ Dispatch the built_deploy.yml workflow
+      - name: Trigger build & deploy
+        uses: peter-evans/workflow-dispatch@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: uow-gitops/gitops-ml-housing
+          workflow: built_deploy.yml
+          ref: master
+          # If your deploy workflow expects inputs, list them here:
+          # inputs: |
+          #   some_input: some_value
 
 
