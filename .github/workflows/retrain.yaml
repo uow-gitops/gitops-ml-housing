@@ -54,7 +54,7 @@ jobs:
           fi
 
           # 3️⃣ Force‑add the newly generated model (bypass .gitignore if needed)
-          git add -f app/model/model.pkl
+          git add -f app/model.pkl
 
           # 4️⃣ Commit only if it actually changed
           if ! git diff --cached --quiet; then
