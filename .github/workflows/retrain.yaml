@@ -75,3 +75,25 @@ jobs:
           fi
 
 
+      - name: Trigger built_deploy via GitHub API
+        env:
+          PAT_TOKEN: ${{ secrets.PUSH_TOKEN }}
+          REPO:      ${{ github.repository }}
+        run: |
+          echo "Dispatching built_deploy.yml on master…"
+          response=$(
+            curl -s -o /dev/null -w "%{http_code}" \
+              -X POST \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "Authorization: token $PAT_TOKEN" \
+              https://api.github.com/repos/$REPO/actions/workflows/built_deploy.yml/dispatches \
+              -d '{"ref":"master"}'
+          )
+          if [ "$response" = "204" ]; then
+            echo "✅ built_deploy workflow dispatched!"
+          else
+            echo "❌ Dispatch failed with HTTP $response"
+            exit 1
+          fi
+
+
