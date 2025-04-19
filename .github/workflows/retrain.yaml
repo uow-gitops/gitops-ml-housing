@@ -36,5 +36,30 @@ jobs:
       - name: Retrain model
         run: python app/main.py retrain
 
-    
+            # ⑤ Commit & push the new model file
+      - name: Commit and push model.pkl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  "GitHub Actions"
+          git config user.email "actions@github.com"
+
+          # stash any uncommitted changes (including your new model.pkl)
+          git stash push --include-untracked -m "pre‐pull model.pkl"
+          # pull in any remote updates so we're up to date
+          git pull --rebase origin master
+          # restore your model.pkl back into the working directory
+          git stash pop
+
+          # force‑add the .pkl even if it's in .gitignore
+          git add -f app/model/model.pkl
+
+          # only commit & push if it actually changed
+          if ! git diff --cached --quiet; then
+            git commit -m "Retrained model: model.pkl"
+            git push origin master
+          else
+            echo "No changes to commit."
+          fi
+
 
