@@ -26,6 +26,7 @@ import os
 import sys
 
 def main_training():
+    
     # Import dataset
     # ---------------------------- FIX #1 ----------------------------
     # Old: df = pd.read_csv('Resources/melbourne_housing.csv')
