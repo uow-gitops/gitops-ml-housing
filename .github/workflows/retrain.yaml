@@ -36,31 +36,42 @@ jobs:
       - name: Retrain model
         run: python app/main.py retrain
 
-      # ⑤ Commit & push removal of the old model, then the new one
-      - name: Commit removal & addition of model.pkl
+            # ⑤ Commit & push the new model file
+      - name: Commit & push model.pkl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name  "GitHub Actions"
+          git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-          # 1️⃣ Make sure we're up to date
-          git pull --rebase origin master
+          # 1️⃣ Sync with remote and stash any local changes
+          git pull --rebase --autostash origin master
 
-          # 2️⃣ If the old model exists in git, remove & commit it
-          if git ls-files --error-unmatch app/model/model.pkl > /dev/null 2>&1; then
-            git rm app/model/model.pkl
-            git commit -m "Remove old model.pkl"
-          fi
+          # 2️⃣ Remove any old tracked model files
+          for old in app/model/model.pkl model/model.pkl app/model.pkl; do
+            if git ls-files --error-unmatch "$old" > /dev/null 2>&1; then
+              git rm "$old"
+              git commit -m "Remove old model: $old"
+            fi
+          done
 
           # 3️⃣ Force‑add the newly generated model (bypass .gitignore if needed)
           git add -f app/model.pkl
 
-          # 4️⃣ Commit only if it actually changed
+          # ➡️ Move it into the proper folder, re‑add, and remove the stray copy
+          if [ -f app/model.pkl ]; then
+            mv app/model.pkl app/model/model.pkl
+            git add -f app/model/model.pkl
+            git rm --cached app/model.pkl || true
+            echo "Moved new model to app/model/model.pkl and staged it."
+          fi
+
+          # 4️⃣ Commit & push
           if ! git diff --cached --quiet; then
-            git commit -m "Add retrained model.pkl"
+            git commit -m "Retrained model: app/model/model.pkl"
             git push origin master
           else
-            echo "No changes in model.pkl – nothing to push."
+            echo "No changes to commit."
           fi
+
 
