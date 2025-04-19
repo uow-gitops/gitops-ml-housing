@@ -1,65 +1,27 @@
-name: Retrain Model
-
-# Give the GITHUB_TOKEN write permission so it can push commits
-permissions:
-  contents: write
-
-on:
-  workflow_dispatch:
-
-jobs:
-  retrain:
-    runs-on: ubuntu-latest
-
-    steps:
-      # ① Checkout with credentials so we can push
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: true
-          fetch-depth: 0        # full history, needed for pull/rebase
-
-      # ② Set up Python
-      - name: Setup Python 3.9
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-
-      # ③ Install dependencies (pin numpy<2 for seaborn & scipy)
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install "numpy<2"
-          pip install pandas scikit-learn matplotlib seaborn scipy joblib psycopg2 sqlalchemy
-
-      # ④ Retrain the model
-      - name: Retrain model
-        run: python app/main.py retrain
-
-            # ⑤ Commit & push the new model file
-      - name: Commit and push model.pkl
+      # ⑤ Commit & push removal of the old model, then the new one
+      - name: Commit removal & addition of model.pkl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name  "GitHub Actions"
           git config user.email "actions@github.com"
 
-          # stash any uncommitted changes (including your new model.pkl)
-          git stash push --include-untracked -m "pre‐pull model.pkl"
-          # pull in any remote updates so we're up to date
+          # 1️⃣ Make sure we're up to date
           git pull --rebase origin master
-          # restore your model.pkl back into the working directory
-          git stash pop
 
-          # force‑add the .pkl even if it's in .gitignore
-          git add -f app/model/model.pkl
-
-          # only commit & push if it actually changed
-          if ! git diff --cached --quiet; then
-            git commit -m "Retrained model: model.pkl"
-            git push origin master
-          else
-            echo "No changes to commit."
+          # 2️⃣ If the old model exists in git, remove & commit it
+          if git ls-files --error-unmatch app/model/model.pkl > /dev/null 2>&1; then
+            git rm app/model/model.pkl
+            git commit -m "Remove old model.pkl"
           fi
 
+          # 3️⃣ Force‑add the newly generated model (bypass .gitignore if needed)
+          git add -f app/model/model.pkl
 
+          # 4️⃣ Commit only if it actually changed
+          if ! git diff --cached --quiet; then
+            git commit -m "Add retrained model.pkl"
+            git push origin master
+          else
+            echo "No changes in model.pkl – nothing to push."
+          fi
