@@ -1,3 +1,41 @@
+name: Retrain Model
+
+# Give the GITHUB_TOKEN write permission so it can push commits
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ① Checkout with credentials so we can push
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+          fetch-depth: 0        # full history, needed for pull/rebase
+
+      # ② Set up Python
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      # ③ Install dependencies (pin numpy<2 for seaborn & scipy)
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "numpy<2"
+          pip install pandas scikit-learn matplotlib seaborn scipy joblib psycopg2 sqlalchemy
+
+      # ④ Retrain the model
+      - name: Retrain model
+        run: python app/main.py retrain
+
       # ⑤ Commit & push removal of the old model, then the new one
       - name: Commit removal & addition of model.pkl
         env:
@@ -25,3 +63,4 @@
           else
             echo "No changes in model.pkl – nothing to push."
           fi
+
