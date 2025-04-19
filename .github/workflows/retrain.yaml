@@ -12,12 +12,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ① Checkout with full history so rebasing works
+      # ① Checkout with credentials so we can push
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          persist-credentials: true    # wire in GITHUB_TOKEN for pushes
-          fetch-depth: 0               # fetch all history
+          persist-credentials: true
+          fetch-depth: 0        # full history, needed for pull/rebase
 
       # ② Set up Python
       - name: Setup Python 3.9
@@ -25,7 +25,7 @@ jobs:
         with:
           python-version: '3.9'
 
-      # ③ Install dependencies (pin NumPy <2 so seaborn & scipy load correctly)
+      # ③ Install dependencies (pin numpy<2 for seaborn & scipy)
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
@@ -36,15 +36,24 @@ jobs:
       - name: Retrain model
         run: python app/main.py retrain
 
-      # ⑤ Commit & push the new model file, pulling with autostash so we keep it
+      # ⑤ Commit & push the new model file (with stash/pop around the pull)
       - name: Commit and push model.pkl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "GitHub Actions"
+          git config user.name  "GitHub Actions"
           git config user.email "actions@github.com"
-          # Pull remote changes, stashing uncommitted (your new model) first and popping it after
-          git pull --rebase --autostash origin master
+
+          # 1) stash both tracked and untracked (i.e. your new model.pkl)
+          git stash push --include-untracked -m "pre‐pull model.pkl"
+
+          # 2) pull in any remote changes
+          git pull --rebase origin master
+
+          # 3) pop your stashed model.pkl back into the working tree
+          git stash pop
+
+          # 4) commit & push if it changed
           git add app/model/model.pkl
           if ! git diff --cached --quiet; then
             git commit -m "Retrained model: model.pkl"
