@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Trigger built_deploy via GitHub API
         env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+          PAT_TOKEN: ${{ secrets.PUSH_TOKEN }}
           REPO:      ${{ github.repository }}
         run: |
           echo "Dispatching built_deploy.yml on master…"
