@@ -34,7 +34,7 @@ jobs:
 
       # ④ Retrain the model
       - name: Retrain model
-        run: python app/main.py retrain
+        run: python app/main.py
 
             # ⑤ Commit & push the new model file
       - name: Commit & push model.pkl
