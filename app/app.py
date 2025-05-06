@@ -128,7 +128,7 @@ def main():
     prediction = model.predict(input_df)[0]  # New
     
     check_prediction_accuracy([np.array(model_input_order)], prediction)
-    
+    MODEL_ACCURACY.set(0.5)
     return render_template('index.html', prediction_text ='The estimate price is :{}'.format(prediction))
 
 @app.route('/metrics')
