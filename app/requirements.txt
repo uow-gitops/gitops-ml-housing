@@ -24,3 +24,4 @@ typing_extensions==4.0.0
 Werkzeug==2.0.2
 wincertstore==0.2
 zipp==3.6.0
+prometheus_client>=0.14
