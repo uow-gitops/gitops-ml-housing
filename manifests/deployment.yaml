@@ -12,6 +12,10 @@ spec:
     metadata:
       labels:
         app: house-price-api
+      annotations:                                 # New
+        prometheus.io/scrape: 'true'               # New
+        prometheus.io/path: '/metrics'             # New
+        prometheus.io/port: '5000'                 # New
     spec:
       containers:
       - name: house-price-api
