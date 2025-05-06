@@ -22,7 +22,7 @@ LATEST_PREDICTION_ACCURACY = Gauge('latest_prediction_accuracy', 'Accuracy of la
 
 # Load cleaned dataset once at startup
 try:
-    df_clean = pd.read_csv('app/Resources/melbourne.csv')
+    df_clean = pd.read_csv('Resources/melbourne.csv')
 
     # 🔥 Drop any index column (like 'Unnamed: 0')
     df_clean = df_clean.loc[:, ~df_clean.columns.str.contains('^Unnamed')]
