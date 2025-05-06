@@ -1,41 +1,39 @@
+# File: .github/workflows/retrain.yaml
 name: Retrain Model
 
-# Give the GITHUB_TOKEN write permission so it can push commits
 permissions:
   contents: write
 
 on:
   workflow_dispatch:
+  repository_dispatch:            # New
+    types:                       # New
+      - monitoring_retrain       # New
 
 jobs:
   retrain:
     runs-on: ubuntu-latest
 
     steps:
-      # ① Checkout with credentials so we can push
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          persist-credentials: true
-          fetch-depth: 0        # full history, needed for pull/rebase
+          persist-redentials: true
+          fetch-depth: 0
 
-      # ② Set up Python
       - name: Setup Python 3.9
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      # ③ Install dependencies (pin numpy<2 for seaborn & scipy)
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pandas==1.5.3 numpy==1.23.5 scikit-learn==1.3.2 matplotlib==3.7.2 seaborn==0.12.2 scipy==1.11.4 joblib psycopg2 sqlalchemy  # New (pinned versions)
 
-      # ④ Retrain the model
       - name: Retrain model
         run: python app/main.py
 
-            # ⑤ Commit & push the new model file
       - name: Commit & push model.pkl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -43,10 +41,10 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-          # 1️⃣ Sync with remote and stash any local changes
+          # Sync and stash
           git pull --rebase --autostash origin master
 
-          # 2️⃣ Remove any old tracked model files
+          # Remove old model files
           for old in app/model/model.pkl model/model.pkl app/model.pkl; do
             if git ls-files --error-unmatch "$old" > /dev/null 2>&1; then
               git rm "$old"
@@ -54,10 +52,10 @@ jobs:
             fi
           done
 
-          # 3️⃣ Force‑add the newly generated model (bypass .gitignore if needed)
+          # Add new model
           git add -f app/model.pkl
 
-          # ➡️ Move it into the proper folder, re‑add, and remove the stray copy
+          # Move into correct directory
           if [ -f app/model.pkl ]; then
             mv app/model.pkl app/model/model.pkl
             git add -f app/model/model.pkl
@@ -65,14 +63,13 @@ jobs:
             echo "Moved new model to app/model/model.pkl and staged it."
           fi
 
-          # 4️⃣ Commit & push
+          # Commit & push if changes exist
           if ! git diff --cached --quiet; then
             git commit -m "Retrained model: app/model/model.pkl"
             git push origin master
           else
             echo "No changes to commit."
           fi
-
 
       - name: Trigger built_deploy via GitHub API
         env:
@@ -94,5 +91,3 @@ jobs:
             echo "❌ Dispatch failed with HTTP $response"
             exit 1
           fi
-
-
