@@ -19,17 +19,17 @@ spec:
     spec:
       containers:
       - name: house-price-api
-        image: us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0.47  # Updated image path
+        image: us-central1-docker.pkg.dev/recoai-455707/ml-housing-repo/ml-housing-app:v1.0.46  # Updated image path
         ports:
         - containerPort: 5000
           name: http
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "200m"
+            memory: "128Mi"
+            cpu: "100m"
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "256Mi"
+            cpu: "300m"
         livenessProbe:
           httpGet:
             path: /
