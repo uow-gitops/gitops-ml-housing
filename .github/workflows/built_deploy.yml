@@ -2,7 +2,7 @@ name: Build Image and Update Deployment Manifest
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
     paths:
       - app/**
   workflow_dispatch:
