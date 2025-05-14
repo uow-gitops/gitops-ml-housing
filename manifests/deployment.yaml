@@ -25,10 +25,10 @@ spec:
           name: http
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "200m"
+            memory: "700Mi"
+            cpu: "250m"
           limits:
-            memory: "512Mi"
+            memory: "800Mi"
             cpu: "500m"
         livenessProbe:
           httpGet:
